@@ -1,0 +1,2420 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>三1班课堂随机点名系统 - 增强版</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Microsoft YaHei', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #e6f7e0, #c2e5c0, #a8d8a5);
+            color: #2c3e50;
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+        
+        /* 淡绿色科技感背景 */
+        .tech-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: 
+                radial-gradient(circle at 10% 20%, rgba(76, 175, 80, 0.15) 0%, transparent 25%),
+                radial-gradient(circle at 80% 30%, rgba(46, 204, 113, 0.15) 0%, transparent 25%),
+                radial-gradient(circle at 30% 70%, rgba(56, 142, 60, 0.15) 0%, transparent 25%),
+                radial-gradient(circle at 70% 80%, rgba(46, 125, 50, 0.15) 0%, transparent 25%),
+                radial-gradient(circle at 50% 50%, rgba(102, 187, 106, 0.2) 0%, transparent 30%),
+                linear-gradient(135deg, rgba(230, 247, 224, 0.9), rgba(194, 229, 192, 0.9), rgba(168, 216, 165, 0.9));
+        }
+        
+        .grid-lines {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                linear-gradient(90deg, rgba(46, 125, 50, 0.1) 1px, transparent 1px),
+                linear-gradient(0deg, rgba(46, 125, 50, 0.1) 1px, transparent 1px);
+            background-size: 40px 40px;
+            z-index: -1;
+        }
+        
+        /* 头部样式 */
+        header {
+            text-align: center;
+            padding: 20px 0;
+            background: rgba(255, 255, 255, 0.7);
+            border-bottom: 2px solid #2e7d32;
+            box-shadow: 0 0 20px rgba(46, 125, 50, 0.3);
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(5px);
+        }
+        
+        header h1 {
+            font-size: 2.8rem;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            margin: 10px 0;
+            background: linear-gradient(to right, #2e7d32, #388e3c, #43a047);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 0 10px rgba(76, 175, 80, 0.3);
+            position: relative;
+            z-index: 2;
+            display: inline-block;
+            padding: 0 20px;
+        }
+        
+        .title-edit {
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+        
+        .title-edit:hover {
+            transform: scale(1.05);
+        }
+        
+        .title-edit i {
+            font-size: 1.5rem;
+            margin-left: 10px;
+            color: #2e7d32;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .title-edit:hover i {
+            opacity: 1;
+        }
+        
+        /* 主容器 */
+        .container {
+            max-width: 1800px;
+            margin: 20px auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+        
+        /* 点名区域 */
+        .random-picker {
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 15px;
+            padding: 25px;
+            border: 2px solid #388e3c;
+            box-shadow: 0 0 25px rgba(56, 142, 60, 0.3);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .name-display {
+            width: 100%;
+            height: 150px;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 4rem;
+            font-weight: bold;
+            color: #1b5e20;
+            text-shadow: 0 0 15px #81c784;
+            border: 2px solid #388e3c;
+            overflow: hidden;
+            position: relative;
+            margin-bottom: 10px;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .rolling {
+            animation: rollingEffect 0.1s infinite;
+        }
+        
+        @keyframes rollingEffect {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .controls {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+        }
+        
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .btn:active {
+            transform: translateY(3px);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(45deg, #388e3c, #2e7d32);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(45deg, #e53935, #d32f2f);
+            color: white;
+        }
+        
+        .btn-success {
+            background: linear-gradient(45deg, #43a047, #2e7d32);
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn-warning {
+            background: linear-gradient(45deg, #ff9800, #f57c00);
+            color: white;
+        }
+        
+        .btn-info {
+            background: linear-gradient(45deg, #2196F3, #1976D2);
+            color: white;
+        }
+        
+        .btn-dark {
+            background: linear-gradient(45deg, #607d8b, #455a64);
+            color: white;
+        }
+        
+        .btn:hover {
+            opacity: 0.9;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+        }
+        
+        .speed-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.7);
+            padding: 8px 20px;
+            border-radius: 50px;
+            border: 1px solid #388e3c;
+            color: #1b5e20;
+        }
+        
+        .speed-control label {
+            font-size: 0.9rem;
+            color: #2e7d32;
+        }
+        
+        .speed-control input {
+            width: 150px;
+        }
+        
+        /* 小组和排行榜容器 */
+        .main-content {
+            display: flex;
+            gap: 30px;
+        }
+        
+        .groups-container {
+            flex: 3;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+        
+        .groups {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 25px;
+        }
+        
+        .group {
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 15px;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+            color: #2c3e50;
+        }
+        
+        .group:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+        }
+        
+        .group-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid;
+        }
+        
+        .group-title {
+            font-size: 1.6rem;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #1b5e20;
+        }
+        
+        .group-score {
+            font-size: 1.8rem;
+            font-weight: bold;
+            background: linear-gradient(45deg, #388e3c, #43a047);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .members {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .member {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 8px;
+            font-size: 1.3rem;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(56, 142, 60, 0.2);
+        }
+        
+        .member:hover {
+            background: rgba(255, 255, 255, 0.7);
+            transform: translateX(5px);
+            border-color: #388e3c;
+        }
+        
+        .member-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+        }
+        
+        .member-name {
+            flex: 1;
+        }
+        
+        .leader {
+            color: #d4af37;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
+        }
+        
+        .sub-leader {
+            color: #9e9e9e;
+            font-weight: bold;
+            text-shadow: 0 0 8px rgba(158, 158, 158, 0.3);
+        }
+        
+        .score {
+            font-weight: bold;
+            min-width: 40px;
+            text-align: center;
+            color: #1b5e20;
+        }
+        
+        .negative-score {
+            color: #e53935;
+        }
+        
+        .score-controls {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .score-btn {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(255, 255, 255, 0.7);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.2s;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .score-btn:hover {
+            transform: scale(1.1);
+        }
+        
+        .add-btn {
+            background: rgba(46, 204, 113, 0.7);
+        }
+        
+        .add-btn:hover {
+            background: rgba(46, 204, 113, 0.9);
+            box-shadow: 0 0 10px rgba(46, 204, 113, 0.3);
+        }
+        
+        .sub-btn {
+            background: rgba(231, 76, 60, 0.7);
+        }
+        
+        .sub-btn:hover {
+            background: rgba(231, 76, 60, 0.9);
+            box-shadow: 0 0 10px rgba(231, 76, 60, 0.3);
+        }
+        
+        .edit-btn {
+            background: rgba(255, 152, 0, 0.7);
+        }
+        
+        .edit-btn:hover {
+            background: rgba(255, 152, 0, 0.9);
+            box-shadow: 0 0 10px rgba(255, 152, 0, 0.3);
+        }
+        
+        /* 排行榜 */
+        .leaderboard-container {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            min-width: 300px;
+            color: #2c3e50;
+        }
+        
+        .leaderboard-title {
+            text-align: center;
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            color: #388e3c;
+            text-shadow: 0 0 10px rgba(56, 142, 60, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .leaderboard {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .leaderboard-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 10px;
+            font-size: 1.3rem;
+            transition: all 0.3s;
+            border: 1px solid rgba(56, 142, 60, 0.2);
+        }
+        
+        .leaderboard-item:hover {
+            background: rgba(255, 255, 255, 0.7);
+            transform: translateY(-3px);
+            border-color: #388e3c;
+        }
+        
+        .rank {
+            font-weight: bold;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 50%;
+            background: rgba(56, 142, 60, 0.2);
+            color: #1b5e20;
+        }
+        
+        .group-name {
+            flex: 1;
+            text-align: left;
+            padding-left: 20px;
+            color: #1b5e20;
+        }
+        
+        .crown {
+            color: #d4af37;
+            text-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
+            margin-left: 10px;
+        }
+        
+        /* 小组边框特效 */
+        .group:nth-child(1) { border: 3px solid #81c784; }
+        .group:nth-child(2) { border: 3px solid #4caf50; }
+        .group:nth-child(3) { border: 3px solid #388e3c; }
+        .group:nth-child(4) { border: 3px solid #2e7d32; }
+        .group:nth-child(5) { border: 3px solid #1b5e20; }
+        .group:nth-child(6) { border: 3px solid #43a047; }
+        .group:nth-child(7) { border: 3px solid #66bb6a; }
+        
+        /* 导出按钮 */
+        .export-btn {
+            align-self: center;
+            padding: 12px 30px;
+            background: linear-gradient(45deg, #388e3c, #2e7d32);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .export-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(56, 142, 60, 0.4);
+        }
+        
+        /* 粒子效果 */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 100;
+        }
+        
+        .particle {
+            position: absolute;
+            width: 25px;
+            height: 25px;
+            pointer-events: none;
+            animation: particleAnim 3s ease-out forwards;
+            box-shadow: 0 0 15px currentColor;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+        }
+        
+        @keyframes particleAnim {
+            0% {
+                transform: translate(0, 0) scale(1) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(var(--tx), var(--ty)) scale(0) rotate(360deg);
+                opacity: 0;
+            }
+        }
+        
+        /* +1 动画效果 */
+        .plus-one {
+            position: absolute;
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #d4af37;
+            text-shadow: 0 0 15px rgba(212, 175, 55, 0.5);
+            animation: plusOneAnim 1s forwards;
+            pointer-events: none;
+            z-index: 101;
+        }
+        
+        @keyframes plusOneAnim {
+            0% {
+                opacity: 1;
+                transform: translate(0, 0) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translate(0, -100px) scale(2);
+            }
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 1400px) {
+            .main-content {
+                flex-direction: column;
+            }
+            
+            .leaderboard-container {
+                min-width: 100%;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .name-display {
+                font-size: 2.5rem;
+                height: 120px;
+            }
+            
+            .controls {
+                flex-direction: column;
+            }
+            
+            .group-title {
+                font-size: 1.3rem;
+            }
+            
+            .member {
+                font-size: 1.1rem;
+            }
+            
+            .leaderboard-item {
+                font-size: 1.1rem;
+            }
+            
+            header h1 {
+                font-size: 2rem;
+            }
+        }
+        
+        /* 音乐控制 */
+        .music-control {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            border: 2px solid #388e3c;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            z-index: 10;
+        }
+        
+        .music-control i {
+            font-size: 1.5rem;
+            color: #388e3c;
+        }
+        
+        .music-control:hover {
+            background: rgba(255, 255, 255, 0.9);
+        }
+        
+        /* 系统状态 */
+        .system-status {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.7);
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-size: 0.9rem;
+            color: #2e7d32;
+            border: 1px solid #388e3c;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: #4caf50;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 0.5; }
+            50% { opacity: 1; }
+            100% { opacity: 0.5; }
+        }
+        
+        /* 编辑模态框 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .modal-title {
+            font-size: 1.5rem;
+            color: #2e7d32;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #666;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #2e7d32;
+            font-weight: bold;
+        }
+        
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+        
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        /* 添加学生模态框 */
+        .add-student-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .add-student-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .add-student-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .add-student-title {
+            font-size: 1.5rem;
+            color: #2e7d32;
+        }
+
+        .add-student-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        /* 删除确认模态框 */
+        .delete-confirm-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .delete-confirm-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.3);
+            text-align: center;
+        }
+
+        .delete-confirm-title {
+            font-size: 1.5rem;
+            color: #2e7d32;
+            margin-bottom: 20px;
+        }
+
+        .delete-confirm-message {
+            margin-bottom: 30px;
+            font-size: 1.1rem;
+        }
+
+        .delete-confirm-footer {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        /* 批量操作模态框 */
+        .batch-operate-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .batch-operate-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .batch-operate-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .batch-operate-title {
+            font-size: 1.5rem;
+            color: #2e7d32;
+        }
+
+        .batch-operate-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        /* 批量操作按钮组 */
+        .batch-buttons {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+
+        /* 批量操作输入框 */
+        .batch-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+            margin-bottom: 20px;
+        }
+
+        /* 小组管理模态框 */
+        .group-manage-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .group-manage-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 600px;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .group-manage-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .group-manage-title {
+            font-size: 1.5rem;
+            color: #2e7d32;
+        }
+
+        .group-manage-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .group-list {
+            max-height: 400px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+        }
+
+        .group-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .group-item:last-child {
+            border-bottom: none;
+        }
+
+        .group-item-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .group-item-name {
+            flex: 1;
+            font-weight: bold;
+        }
+
+        .group-item-count {
+            color: #666;
+            margin-right: 20px;
+        }
+
+        .add-group-form {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .add-group-input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+
+        .add-group-btn {
+            padding: 10px 20px;
+            background: linear-gradient(45deg, #388e3c, #2e7d32);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        /* 编辑小组名称模态框 */
+        .edit-group-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .edit-group-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .edit-group-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .edit-group-title {
+            font-size: 1.5rem;
+            color: #2e7d32;
+        }
+
+        .edit-group-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        /* 管理按钮样式 */
+        .manage-btn {
+            padding: 12px 30px;
+            background: linear-gradient(45deg, #6a1b9a, #9c27b0);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .manage-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(106, 27, 154, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <!-- 淡绿色科技感背景 -->
+    <div class="tech-bg">
+        <div class="grid-lines"></div>
+    </div>
+    
+    <!-- 粒子容器 -->
+    <div class="particles"></div>
+    
+    <!-- 音乐控制 -->
+    <div class="music-control" id="musicControl">
+        <i class="fas fa-volume-up"></i>
+    </div>
+    
+    <header>
+        <h1 id="mainTitle" class="title-edit">
+            <i class="fas fa-random"></i> 三1班课堂随机点名系统
+            <i class="fas fa-edit"></i>
+        </h1>
+    </header>
+    
+    <div class="container">
+        <!-- 随机点名区域 -->
+        <div class="random-picker">
+            <div class="name-display" id="nameDisplay">准备开始</div>
+            <div class="controls">
+                <button class="btn btn-primary" id="startBtn">
+                    <i class="fas fa-play"></i> 开始点名
+                </button>
+                <button class="btn btn-secondary" id="stopBtn">
+                    <i class="fas fa-stop"></i> 停止点名
+                </button>
+                <button class="btn btn-success" id="addPointBtn">
+                    <i class="fas fa-plus-circle"></i> 加分
+                </button>
+                <div class="speed-control">
+                    <label for="speedSlider"><i class="fas fa-tachometer-alt"></i> 速度调节</label>
+                    <input type="range" id="speedSlider" min="50" max="300" value="150">
+                </div>
+            </div>
+        </div>
+        
+        <!-- 主内容区域 -->
+        <div class="main-content">
+            <!-- 小组列表 -->
+            <div class="groups-container">
+                <div class="groups" id="groupsContainer">
+                    <!-- 小组内容由JS生成 -->
+                </div>
+            </div>
+            
+            <!-- 排行榜 -->
+            <div class="leaderboard-container">
+                <h2 class="leaderboard-title"><i class="fas fa-trophy"></i> 小组积分排行榜</h2>
+                <div class="leaderboard" id="leaderboardList">
+                    <!-- 排行榜内容由JS生成 -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- 批量操作按钮 -->
+        <div class="batch-buttons">
+            <button class="btn btn-info" id="batchAddBtn">
+                <i class="fas fa-plus-circle"></i> 统一加分
+            </button>
+            <button class="btn btn-warning" id="batchSubBtn">
+                <i class="fas fa-minus-circle"></i> 统一减分
+            </button>
+            <button class="btn btn-dark" id="resetScoresBtn">
+                <i class="fas fa-trash-alt"></i> 一键清空积分
+            </button>
+        </div>
+        
+        <!-- 管理按钮 -->
+        <div style="display: flex; justify-content: center; gap: 15px;">
+            <button class="manage-btn" id="addStudentBtn">
+                <i class="fas fa-user-plus"></i> 添加学生
+            </button>
+            <button class="manage-btn" id="deleteStudentBtn">
+                <i class="fas fa-user-minus"></i> 删除学生
+            </button>
+            <button class="manage-btn" id="manageGroupsBtn">
+                <i class="fas fa-users-cog"></i> 小组管理
+            </button>
+        </div>
+        
+        <!-- 导出按钮 -->
+        <button class="export-btn" id="exportBtn">
+            <i class="fas fa-file-excel"></i> 导出积分数据
+        </button>
+    </div>
+    
+    <!-- 系统状态 -->
+    <div class="system-status">
+        <div class="status-indicator"></div>
+        <span>系统运行中 - 数据已自动保存</span>
+    </div>
+    
+    <!-- 音频元素 -->
+    <audio id="celebrationSound" loop></audio>
+    <audio id="rollSound" loop></audio>
+    
+    <!-- 编辑模态框 -->
+    <div class="modal" id="editModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">编辑学生信息</h3>
+                <button class="close-btn" id="closeModal">&times;</button>
+            </div>
+            <div class="form-group">
+                <label for="editName">姓名</label>
+                <input type="text" id="editName">
+            </div>
+            <div class="form-group">
+                <label for="editGroup">小组</label>
+                <select id="editGroup">
+                    <!-- 小组选项由JS动态生成 -->
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="editRole">角色</label>
+                <select id="editRole">
+                    <option value="组长">组长</option>
+                    <option value="组员">组员</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="editScore">积分</label>
+                <input type="number" id="editScore">
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="cancelEdit">取消</button>
+                <button class="btn btn-primary" id="saveEdit">保存</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 标题编辑模态框 -->
+    <div class="modal" id="titleModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">编辑标题</h3>
+                <button class="close-btn" id="closeTitleModal">&times;</button>
+            </div>
+            <div class="form-group">
+                <input type="text" class="title-input" id="titleInput" placeholder="请输入新标题">
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="cancelTitleEdit">取消</button>
+                <button class="btn btn-primary" id="saveTitleEdit">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加学生模态框 -->
+    <div class="add-student-modal" id="addStudentModal">
+        <div class="add-student-content">
+            <div class="add-student-header">
+                <h3 class="add-student-title">添加新学生</h3>
+                <button class="close-btn" id="closeAddStudentModal">&times;</button>
+            </div>
+            <div class="form-group">
+                <label for="newStudentName">姓名</label>
+                <input type="text" id="newStudentName" placeholder="请输入学生姓名">
+            </div>
+            <div class="form-group">
+                <label for="newStudentGroup">小组</label>
+                <select id="newStudentGroup">
+                    <!-- 小组选项由JS动态生成 -->
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="newStudentRole">角色</label>
+                <select id="newStudentRole">
+                    <option value="组长">组长</option>
+                    <option value="组员">组员</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="newStudentScore">初始积分</label>
+                <input type="number" id="newStudentScore" value="0">
+            </div>
+            <div class="add-student-footer">
+                <button class="btn btn-secondary" id="cancelAddStudent">取消</button>
+                <button class="btn btn-primary" id="saveAddStudent">添加</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 删除确认模态框 -->
+    <div class="delete-confirm-modal" id="deleteConfirmModal">
+        <div class="delete-confirm-content">
+            <h3 class="delete-confirm-title">删除学生</h3>
+            <p class="delete-confirm-message" id="deleteConfirmMessage">确定要删除该学生吗？</p>
+            <div class="delete-confirm-footer">
+                <button class="btn btn-secondary" id="cancelDeleteStudent">取消</button>
+                <button class="btn btn-primary" id="confirmDeleteStudent">确定删除</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 批量操作模态框 -->
+    <div class="batch-operate-modal" id="batchOperateModal">
+        <div class="batch-operate-content">
+            <div class="batch-operate-header">
+                <h3 class="batch-operate-title" id="batchOperateTitle">批量操作</h3>
+                <button class="close-btn" id="closeBatchOperateModal">&times;</button>
+            </div>
+            <div class="form-group">
+                <label for="batchPoints" id="batchPointsLabel">请输入积分调整值</label>
+                <input type="number" id="batchPoints" class="batch-input" placeholder="请输入积分值" value="1">
+            </div>
+            <div class="batch-operate-footer">
+                <button class="btn btn-secondary" id="cancelBatchOperate">取消</button>
+                <button class="btn btn-primary" id="confirmBatchOperate">确认</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 小组管理模态框 -->
+    <div class="group-manage-modal" id="groupManageModal">
+        <div class="group-manage-content">
+            <div class="group-manage-header">
+                <h3 class="group-manage-title"><i class="fas fa-users-cog"></i> 小组管理</h3>
+                <button class="close-btn" id="closeGroupManageModal">&times;</button>
+            </div>
+            <div class="group-list" id="groupList">
+                <!-- 小组列表由JS动态生成 -->
+            </div>
+            <div class="add-group-form">
+                <input type="text" id="newGroupName" class="add-group-input" placeholder="输入新小组名称">
+                <button class="add-group-btn" id="addGroupBtn"><i class="fas fa-plus"></i> 添加小组</button>
+            </div>
+            <div class="group-manage-footer">
+                <button class="btn btn-secondary" id="cancelGroupManage">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 编辑小组名称模态框 -->
+    <div class="edit-group-modal" id="editGroupModal">
+        <div class="edit-group-content">
+            <div class="edit-group-header">
+                <h3 class="edit-group-title">编辑小组名称</h3>
+                <button class="close-btn" id="closeEditGroupModal">&times;</button>
+            </div>
+            <div class="form-group">
+                <label for="editGroupName">新小组名称</label>
+                <input type="text" id="editGroupName" placeholder="输入新小组名称">
+            </div>
+            <div class="edit-group-footer">
+                <button class="btn btn-secondary" id="cancelEditGroup">取消</button>
+                <button class="btn btn-primary" id="saveEditGroup">保存</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 初始化学生数据
+        const students = [
+            // 第1小组
+            { group: "第1小组", name: "丁泊瑞", role: "组长", score: 0 },
+            { group: "第1小组", name: "谢清玥", role: "组员", score: 0 },
+            { group: "第1小组", name: "张青尧", role: "组员", score: 0 },
+            { group: "第1小组", name: "王辰兮", role: "组员", score: 0 },
+            { group: "第1小组", name: "陈梓榆", role: "组员", score: 0 },
+            { group: "第1小组", name: "完颜金宏", role: "组员", score: 0 },
+            
+            // 第2小组
+            { group: "第2小组", name: "李亦箫", role: "组长", score: 0 },
+            { group: "第2小组", name: "李陈斌", role: "组员", score: 0 },
+            { group: "第2小组", name: "朱钦林", role: "组员", score: 0 },
+            { group: "第2小组", name: "杨镇玮", role: "组员", score: 0 },
+            { group: "第2小组", name: "夏诗涵", role: "组员", score: 0 },
+            { group: "第2小组", name: "杨沐锦", role: "组员", score: 0 },
+            
+            // 第3小组
+            { group: "第3小组", name: "闵瑞雪", role: "组长", score: 0 },
+            { group: "第3小组", name: "周钰恒", role: "组员", score: 0 },
+            { group: "第3小组", name: "李佳豪", role: "组员", score: 0 },
+            { group: "第3小组", name: "李昊衡", role: "组员", score: 0 },
+            { group: "第3小组", name: "李萌", role: "组员", score: 0 },
+            { group: "第3小组", name: "王浩臣", role: "组员", score: 0 },
+            
+            // 第4小组
+            { group: "第4小组", name: "肖文萱", role: "组长", score: 0 },
+            { group: "第4小组", name: "段俊聪", role: "组员", score: 0 },
+            { group: "第4小组", name: "黄文馨", role: "组员", score: 0 },
+            { group: "第4小组", name: "伍素娴", role: "组员", score: 0 },
+            { group: "第4小组", name: "王键滔", role: "组员", score: 0 },
+            { group: "第4小组", name: "班芮绮", role: "组员", score: 0 },
+            
+            // 第5小组
+            { group: "第5小组", name: "施可妍", role: "组长", score: 0 },
+            { group: "第5小组", name: "杜泊霖", role: "组员", score: 0 },
+            { group: "第5小组", name: "赵俊", role: "组员", score: 0 },
+            { group: "第5小组", name: "王柏坤", role: "组员", score: 0 },
+            { group: "第5小组", name: "王佳芮", role: "组员", score: 0 },
+            { group: "第5小组", name: "田维涵", role: "组员", score: 0 },
+            
+            // 第6小组
+            { group: "第6小组", name: "吴佳芸", role: "组长", score: 0 },
+            { group: "第6小组", name: "陈奕彤", role: "组员", score: 0 },
+            { group: "第6小组", name: "张茜妍", role: "组员", score: 0 },
+            { group: "第6小组", name: "李南溪", role: "组员", score: 0 },
+            { group: "第6小组", name: "唐熙容", role: "组员", score: 0 },
+            { group: "第6小组", name: "李航宇", role: "组员", score: 0 },
+            
+            // 第7小组
+            { group: "第7小组", name: "李玉葶", role: "组长", score: 0 },
+            { group: "第7小组", name: "闵健超", role: "组员", score: 0 },
+            { group: "第7小组", name: "李柯漫", role: "组员", score: 0 },
+            { group: "第7小组", name: "邓晓语", role: "组员", score: 0 },
+            { group: "第7小组", name: "石烜荣", role: "组员", score: 0 },
+            { group: "第7小组", name: "周莹骐", role: "组员", score: 0 },
+            { group: "第7小组", name: "李易珈", role: "组员", score: 0 }
+        ];
+        
+        // 图标数组
+        const groupIcons = [
+            '<i class="fas fa-seedling"></i>',
+            '<i class="fas fa-tree"></i>',
+            '<i class="fas fa-leaf"></i>',
+            '<i class="fas fa-apple-alt"></i>',
+            '<i class="fas fa-feather"></i>',
+            '<i class="fas fa-feather-alt"></i>',
+            '<i class="fas fa-pagelines"></i>'
+        ];
+        
+        // 彩色碎片形状SVG - 多种颜色和形状
+        const particleShapes = [
+            // 红色碎片
+            "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 0L100 50L50 100L0 50Z' fill='%23FF5252'/%3E%3C/svg%3E",
+            "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 0L100 50L50 100L0 50Z' fill='%23FF4081'/%3E%3C/svg%3E",
+            
+            // 橙色碎片
+            "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 0L100 50L50 100L0 50Z' fill='%23FF9800'/%3E%3C/svg%3E",
+            "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 0L100 50L50 100L0 50Z' fill='%23FF5722'/%3E%3C/svg%3E",
+            
+            // 黄色碎片
+            "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 0L100 50L50 100L0 50Z' fill='%23FFEB3B'/%3E%3C/svg%3E",
+            "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 0L100 50L50 100L0 50Z' fill='%23FFC107'/%3E%3C/svg%3E",
+            
+            // 绿色碎片
+            "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 0L100 50L50 100L0 50Z' fill='%234CAF50'/%3E%3C/svg%3E",
+            "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 0L100 50L50 100L0 50Z' fill='%238BC34A'/%3E%3C/svg%3E",
+            
+            // 蓝色碎片
+            "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 0L100 50L50 100L0 50Z' fill='%232196F3'/%3E%3C/svg%3E",
+            "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 0L100 50L50 100L0 50Z' fill='%2300BCD4'/%3E%3C/svg%3E",
+            
+            // 靛蓝碎片
+            "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 0L100 50L50 100L0 50Z' fill='%233F51B5'/%3E%3C/svg%3E",
+            "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 0L100 50L50 100L0 50Z' fill='%23673AB7'/%3E%3C/svg%3E",
+            
+            // 紫色碎片
+            "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 0L100 50L50 100L0 50Z' fill='%239C27B0'/%3E%3C/svg%3E",
+            "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 0L100 50L50 100L0 50Z' fill='%23E91E63'/%3E%3C/svg%3E",
+            
+            // 粉色碎片
+            "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 0L100 50L50 100L0 50Z' fill='%23EC407A'/%3E%3C/svg%3E",
+            "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 0L100 50L50 100L0 50Z' fill='%23F48FB1'/%3E%3C/svg%3E",
+            
+            // 三角形碎片
+            "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 0L100 100L0 100Z' fill='%23FF5252'/%3E%3C/svg%3E",
+            "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 0L100 100L0 100Z' fill='%234CAF50'/%3E%3C/svg%3E",
+            "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 0L100 100L0 100Z' fill='%232196F3'/%3E%3C/svg%3E",
+            
+            // 星形碎片
+            "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 0L61 35H98L68 57L79 92L50 72L21 92L32 57L2 35H39Z' fill='%23FFEB3B'/%3E%3C/svg%3E",
+            "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 0L61 35H98L68 57L79 92L50 72L21 92L32 57L2 35H39Z' fill='%23FF9800'/%3E%3C/svg%3E",
+            "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 0L61 35H98L68 57L79 92L50 72L21 92L32 57L2 35H39Z' fill='%239C27B0'/%3E%3C/svg%3E",
+            
+            // 圆形碎片
+            "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%23FF5252'/%3E%3C/svg%3E",
+            "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%234CAF50'/%3E%3C/svg%3E",
+            "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%232196F3'/%3E%3C/svg%3E",
+            "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%23FFEB3B'/%3E%3C/svg%3E",
+            
+            // 心形碎片
+            "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 30Q30 10 20 30Q10 50 50 80Q90 50 80 30Q70 10 50 30Z' fill='%23E91E63'/%3E%3C/svg%3E",
+            "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 30Q30 10 20 30Q10 50 50 80Q90 50 80 30Q70 10 50 30Z' fill='%23F44336'/%3E%3C/svg%3E",
+            
+            // 不规则多边形碎片
+            "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 0L75 25L100 50L75 75L50 100L25 75L0 50L25 25Z' fill='%23673AB7'/%3E%3C/svg%3E",
+            "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 0L75 25L100 50L75 75L50 100L25 75L0 50L25 25Z' fill='%2300BCD4'/%3E%3C/svg%3E"
+        ];
+        
+        // DOM元素
+        const nameDisplay = document.getElementById('nameDisplay');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const addPointBtn = document.getElementById('addPointBtn');
+        const speedSlider = document.getElementById('speedSlider');
+        const groupsContainer = document.getElementById('groupsContainer');
+        const leaderboardList = document.getElementById('leaderboardList');
+        const exportBtn = document.getElementById('exportBtn');
+        const celebrationSound = document.getElementById('celebrationSound');
+        const rollSound = document.getElementById('rollSound');
+        const particlesContainer = document.querySelector('.particles');
+        const musicControl = document.getElementById('musicControl');
+        const addStudentBtn = document.getElementById('addStudentBtn');
+        const deleteStudentBtn = document.getElementById('deleteStudentBtn');
+        const manageGroupsBtn = document.getElementById('manageGroupsBtn');
+        const batchAddBtn = document.getElementById('batchAddBtn');
+        const batchSubBtn = document.getElementById('batchSubBtn');
+        const resetScoresBtn = document.getElementById('resetScoresBtn');
+        const editModal = document.getElementById('editModal');
+        const closeModal = document.getElementById('closeModal');
+        const cancelEdit = document.getElementById('cancelEdit');
+        const saveEdit = document.getElementById('saveEdit');
+        const editName = document.getElementById('editName');
+        const editGroup = document.getElementById('editGroup');
+        const editRole = document.getElementById('editRole');
+        const editScore = document.getElementById('editScore');
+        const mainTitle = document.getElementById('mainTitle');
+        const titleModal = document.getElementById('titleModal');
+        const titleInput = document.getElementById('titleInput');
+        const closeTitleModal = document.getElementById('closeTitleModal');
+        const cancelTitleEdit = document.getElementById('cancelTitleEdit');
+        const saveTitleEdit = document.getElementById('saveTitleEdit');
+        const addStudentModal = document.getElementById('addStudentModal');
+        const closeAddStudentModal = document.getElementById('closeAddStudentModal');
+        const cancelAddStudent = document.getElementById('cancelAddStudent');
+        const saveAddStudent = document.getElementById('saveAddStudent');
+        const newStudentName = document.getElementById('newStudentName');
+        const newStudentGroup = document.getElementById('newStudentGroup');
+        const newStudentRole = document.getElementById('newStudentRole');
+        const newStudentScore = document.getElementById('newStudentScore');
+        const deleteConfirmModal = document.getElementById('deleteConfirmModal');
+        const deleteConfirmMessage = document.getElementById('deleteConfirmMessage');
+        const cancelDeleteStudent = document.getElementById('cancelDeleteStudent');
+        const confirmDeleteStudent = document.getElementById('confirmDeleteStudent');
+        const batchOperateModal = document.getElementById('batchOperateModal');
+        const batchOperateTitle = document.getElementById('batchOperateTitle');
+        const batchPointsLabel = document.getElementById('batchPointsLabel');
+        const batchPoints = document.getElementById('batchPoints');
+        const closeBatchOperateModal = document.getElementById('closeBatchOperateModal');
+        const cancelBatchOperate = document.getElementById('cancelBatchOperate');
+        const confirmBatchOperate = document.getElementById('confirmBatchOperate');
+        const groupManageModal = document.getElementById('groupManageModal');
+        const closeGroupManageModal = document.getElementById('closeGroupManageModal');
+        const cancelGroupManage = document.getElementById('cancelGroupManage');
+        const groupList = document.getElementById('groupList');
+        const newGroupName = document.getElementById('newGroupName');
+        const addGroupBtn = document.getElementById('addGroupBtn');
+        const editGroupModal = document.getElementById('editGroupModal');
+        const closeEditGroupModal = document.getElementById('closeEditGroupModal');
+        const cancelEditGroup = document.getElementById('cancelEditGroup');
+        const saveEditGroup = document.getElementById('saveEditGroup');
+        const editGroupName = document.getElementById('editGroupName');
+        
+        // 全局变量
+        let isRolling = false;
+        let rollInterval;
+        let autoStopTimeout;
+        let currentStudent = null;
+        let rollSpeed = 150; // 默认速度值
+        let studentsData = [];
+        let isMusicEnabled = true;
+        let studentToEdit = null;
+        let studentToDelete = null;
+        let currentBatchOperation = null; // 'add' 或 'sub'
+        let groupToEdit = null; // 当前正在编辑的小组
+        
+        // 初始化应用
+        function initApp() {
+            // 从localStorage加载数据，如果没有则使用初始数据
+            const savedData = localStorage.getItem('classroomData');
+            studentsData = savedData ? JSON.parse(savedData) : [...students];
+            
+            // 加载标题
+            const savedTitle = localStorage.getItem('classroomTitle');
+            if (savedTitle) {
+                mainTitle.innerHTML = `<i class="fas fa-random"></i> ${savedTitle} <i class="fas fa-edit"></i>`;
+                document.title = `${savedTitle} - 增强版`;
+            }
+            
+            // 设置音频
+            setupAudio();
+            
+            // 渲染小组
+            renderGroups();
+            
+            // 渲染排行榜
+            renderLeaderboard();
+            
+            // 设置事件监听器
+            setupEventListeners();
+        }
+        
+        // 设置音频
+        function setupAudio() {
+            // 滚动音乐 - 使用base64编码的简短音频
+            rollSound.src = "data:audio/mpeg;base64,SUQzBAAAAAABEVRYWFgAAAAtAAADY29tbWVudABCaWdTb3VuZEJhbmsuY29tIC8gTGFTb25vdGhlcXVlLm9yZwBURU5DAAAAHQAAA1N3aXRjaCBQbHVzIMKpIE5DSCBTb2Z0d2FyZQBUSVQyAAAABgAAAzIyMzUAVFNTRQAAAA8AAANMYXZmNTcuODMuMTAwAAAAAAAAAAAAAAD/80DEAAAAA0gAAAAATEFNRTMuMTAwVVVVVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQsRbAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQMSkAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV";
+            
+            // 庆祝音乐
+            celebrationSound.src = "data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA/+tAwAAAAAAAAAAAAEluZm8AAAAPAAAAAwAAAbgAS0tLXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXf/zQsQdAAADSAAAAABdXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dX";
+        }
+        
+        // 获取所有小组名称
+        function getAllGroups() {
+            const groups = new Set();
+            studentsData.forEach(student => {
+                groups.add(student.group);
+            });
+            return Array.from(groups).sort();
+        }
+        
+        // 更新小组选择下拉框
+        function updateGroupSelects() {
+            const groups = getAllGroups();
+            
+            // 更新编辑模态框的小组选择
+            editGroup.innerHTML = groups.map(group => 
+                `<option value="${group}">${group}</option>`
+            ).join('');
+            
+            // 更新添加学生模态框的小组选择
+            newStudentGroup.innerHTML = groups.map(group => 
+                `<option value="${group}">${group}</option>`
+            ).join('');
+        }
+        
+        // 渲染小组
+        function renderGroups() {
+            groupsContainer.innerHTML = '';
+            
+            // 按小组分组
+            const groupsMap = {};
+            studentsData.forEach(student => {
+                if (!groupsMap[student.group]) {
+                    groupsMap[student.group] = [];
+                }
+                groupsMap[student.group].push(student);
+            });
+            
+            // 获取所有小组并按名称排序
+            const sortedGroups = Object.keys(groupsMap).sort();
+            
+            // 渲染每个小组
+            sortedGroups.forEach((groupName, index) => {
+                const groupStudents = groupsMap[groupName];
+                const groupScore = groupStudents.reduce((sum, student) => sum + student.score, 0);
+                
+                const groupEl = document.createElement('div');
+                groupEl.className = 'group';
+                
+                // 小组标题
+                groupEl.innerHTML = `
+                    <div class="group-header">
+                        <div class="group-title">
+                            ${groupIcons[index % groupIcons.length]} ${groupName}
+                        </div>
+                        <div class="group-score">${groupScore}分</div>
+                    </div>
+                    <div class="members">
+                        ${groupStudents.map(student => `
+                            <div class="member ${student.role === '组长' ? 'leader' : ''}">
+                                <div class="member-info">
+                                    ${student.role === '组长' ? '<i class="fas fa-crown"></i>' : '<i class="fas fa-user-graduate"></i>'}
+                                    <span class="member-name">${student.name}</span>
+                                </div>
+                                <div class="score ${student.score < 0 ? 'negative-score' : ''}">${student.score}</div>
+                                <div class="score-controls">
+                                    <button class="score-btn add-btn" data-name="${student.name}">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                    <button class="score-btn sub-btn" data-name="${student.name}">
+                                        <i class="fas fa-minus"></i>
+                                    </button>
+                                    <button class="score-btn edit-btn" data-name="${student.name}">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                
+                groupsContainer.appendChild(groupEl);
+            });
+            
+            // 更新小组选择下拉框
+            updateGroupSelects();
+            
+            // 添加小组加减分事件
+            document.querySelectorAll('.add-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const studentName = btn.getAttribute('data-name');
+                    updateScore(studentName, 1);
+                });
+            });
+            
+            document.querySelectorAll('.sub-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const studentName = btn.getAttribute('data-name');
+                    updateScore(studentName, -1);
+                });
+            });
+            
+            // 添加编辑按钮事件
+            document.querySelectorAll('.edit-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const studentName = btn.getAttribute('data-name');
+                    openEditModal(studentName);
+                });
+            });
+        }
+        
+        // 渲染排行榜
+        function renderLeaderboard() {
+            // 计算每个小组的总分
+            const groupScores = {};
+            studentsData.forEach(student => {
+                if (!groupScores[student.group]) {
+                    groupScores[student.group] = 0;
+                }
+                groupScores[student.group] += student.score;
+            });
+            
+            // 转换为数组并排序
+            const sortedGroups = Object.entries(groupScores)
+                .map(([group, score]) => ({ group, score }))
+                .sort((a, b) => b.score - a.score);
+            
+            // 渲染排行榜
+            leaderboardList.innerHTML = sortedGroups.map((group, index) => {
+                let crown = '';
+                if (index === 0) crown = '<i class="fas fa-crown crown"></i><i class="fas fa-crown crown"></i><i class="fas fa-crown crown"></i>';
+                else if (index === 1) crown = '<i class="fas fa-crown crown"></i><i class="fas fa-crown crown"></i>';
+                else if (index === 2) crown = '<i class="fas fa-crown crown"></i>';
+                
+                return `
+                    <div class="leaderboard-item">
+                        <div class="rank">${index + 1}</div>
+                        <div class="group-name">${group.group}</div>
+                        <div>${crown} <span class="score">${group.score}分</span></div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // 渲染小组管理列表
+        function renderGroupList() {
+            const groups = getAllGroups();
+            
+            groupList.innerHTML = groups.map(group => {
+                // 计算该小组的学生数量
+                const count = studentsData.filter(s => s.group === group).length;
+                
+                return `
+                    <div class="group-item">
+                        <div class="group-item-name">${group}</div>
+                        <div class="group-item-count">${count}人</div>
+                        <div class="group-item-controls">
+                            <button class="score-btn edit-btn edit-group-btn" data-group="${group}">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="score-btn sub-btn delete-group-btn" data-group="${group}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            // 添加编辑小组按钮事件
+            document.querySelectorAll('.edit-group-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const groupName = btn.getAttribute('data-group');
+                    openEditGroupModal(groupName);
+                });
+            });
+            
+            // 添加删除小组按钮事件
+            document.querySelectorAll('.delete-group-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const groupName = btn.getAttribute('data-group');
+                    deleteGroup(groupName);
+                });
+            });
+        }
+        
+        // 设置事件监听器
+        function setupEventListeners() {
+            // 开始点名
+            startBtn.addEventListener('click', startRolling);
+            
+            // 停止点名
+            stopBtn.addEventListener('click', stopRolling);
+            
+            // 加分按钮
+            addPointBtn.addEventListener('click', () => {
+                if (currentStudent) {
+                    updateScore(currentStudent.name, 1);
+                    createPlusOneAnimation();
+                    createParticles();
+                    celebrate();
+                    speakPraise();
+                }
+            });
+            
+            // 速度调节
+            speedSlider.addEventListener('input', () => {
+                rollSpeed = 350 - speedSlider.value; // 反转值，使滑块向右速度更快
+                if (isRolling) {
+                    clearInterval(rollInterval);
+                    rollInterval = setInterval(rollNames, rollSpeed);
+                }
+            });
+            
+            // 导出按钮
+            exportBtn.addEventListener('click', exportToExcel);
+            
+            // 音乐控制
+            musicControl.addEventListener('click', toggleMusic);
+            
+            // 添加学生按钮
+            addStudentBtn.addEventListener('click', () => {
+                newStudentName.value = '';
+                newStudentGroup.value = getAllGroups()[0] || '第1小组';
+                newStudentRole.value = '组员';
+                newStudentScore.value = '0';
+                addStudentModal.style.display = 'flex';
+            });
+            
+            // 关闭添加学生模态框
+            closeAddStudentModal.addEventListener('click', () => {
+                addStudentModal.style.display = 'none';
+            });
+            
+            cancelAddStudent.addEventListener('click', () => {
+                addStudentModal.style.display = 'none';
+            });
+            
+            // 保存新学生
+            saveAddStudent.addEventListener('click', addNewStudent);
+            
+            // 删除学生按钮
+            deleteStudentBtn.addEventListener('click', openDeleteStudentModal);
+            
+            // 关闭删除确认模态框
+            cancelDeleteStudent.addEventListener('click', () => {
+                deleteConfirmModal.style.display = 'none';
+            });
+            
+            // 确认删除学生
+            confirmDeleteStudent.addEventListener('click', deleteSelectedStudent);
+            
+            // 小组管理按钮
+            manageGroupsBtn.addEventListener('click', openGroupManageModal);
+            
+            // 关闭小组管理模态框
+            closeGroupManageModal.addEventListener('click', () => {
+                groupManageModal.style.display = 'none';
+            });
+            
+            cancelGroupManage.addEventListener('click', () => {
+                groupManageModal.style.display = 'none';
+            });
+            
+            // 添加小组按钮
+            addGroupBtn.addEventListener('click', addNewGroup);
+            
+            // 批量加分按钮
+            batchAddBtn.addEventListener('click', () => {
+                currentBatchOperation = 'add';
+                batchOperateTitle.textContent = '统一加分';
+                batchPointsLabel.textContent = '请输入要增加的积分值';
+                batchPoints.value = '1';
+                batchOperateModal.style.display = 'flex';
+            });
+            
+            // 批量减分按钮
+            batchSubBtn.addEventListener('click', () => {
+                currentBatchOperation = 'sub';
+                batchOperateTitle.textContent = '统一减分';
+                batchPointsLabel.textContent = '请输入要减少的积分值';
+                batchPoints.value = '1';
+                batchOperateModal.style.display = 'flex';
+            });
+            
+            // 一键清空积分按钮
+            resetScoresBtn.addEventListener('click', resetAllScores);
+            
+            // 关闭批量操作模态框
+            closeBatchOperateModal.addEventListener('click', () => {
+                batchOperateModal.style.display = 'none';
+            });
+            
+            cancelBatchOperate.addEventListener('click', () => {
+                batchOperateModal.style.display = 'none';
+            });
+            
+            // 确认批量操作
+            confirmBatchOperate.addEventListener('click', executeBatchOperation);
+            
+            // 模态框关闭按钮
+            closeModal.addEventListener('click', closeEditModal);
+            cancelEdit.addEventListener('click', closeEditModal);
+            
+            // 模态框保存按钮
+            saveEdit.addEventListener('click', saveStudentEdit);
+            
+            // 标题编辑
+            mainTitle.addEventListener('click', () => {
+                titleInput.value = mainTitle.textContent.trim();
+                titleModal.style.display = 'flex';
+            });
+            
+            // 标题模态框关闭按钮
+            closeTitleModal.addEventListener('click', () => {
+                titleModal.style.display = 'none';
+            });
+            
+            cancelTitleEdit.addEventListener('click', () => {
+                titleModal.style.display = 'none';
+            });
+            
+            // 标题模态框保存按钮
+            saveTitleEdit.addEventListener('click', () => {
+                const newTitle = titleInput.value.trim();
+                if (newTitle) {
+                    mainTitle.innerHTML = `<i class="fas fa-random"></i> ${newTitle} <i class="fas fa-edit"></i>`;
+                    document.title = `${newTitle} - 增强版`;
+                    localStorage.setItem('classroomTitle', newTitle);
+                    titleModal.style.display = 'none';
+                }
+            });
+            
+            // 编辑小组名称模态框关闭按钮
+            closeEditGroupModal.addEventListener('click', () => {
+                editGroupModal.style.display = 'none';
+            });
+            
+            cancelEditGroup.addEventListener('click', () => {
+                editGroupModal.style.display = 'none';
+            });
+            
+            // 编辑小组名称保存按钮
+            saveEditGroup.addEventListener('click', saveGroupEdit);
+        }
+        
+        // 开始滚动名字
+        function startRolling() {
+            if (isRolling) return;
+            
+            isRolling = true;
+            nameDisplay.classList.add('rolling');
+            nameDisplay.style.color = '#1b5e20';
+            
+            // 使用Fisher-Yates洗牌算法确保每个学生有相同概率被选中
+            const shuffledStudents = [...studentsData];
+            for (let i = shuffledStudents.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffledStudents[i], shuffledStudents[j]] = [shuffledStudents[j], shuffledStudents[i]];
+            }
+            
+            let currentIndex = 0;
+            rollInterval = setInterval(() => {
+                nameDisplay.textContent = shuffledStudents[currentIndex].name;
+                currentIndex = (currentIndex + 1) % shuffledStudents.length;
+            }, rollSpeed);
+            
+            // 播放滚动音乐
+            if (isMusicEnabled) {
+                rollSound.currentTime = 0;
+                rollSound.play();
+            }
+            
+            // 2.5秒后自动停止
+            clearTimeout(autoStopTimeout);
+            autoStopTimeout = setTimeout(() => {
+                stopRolling();
+            }, 2500);
+        }
+        
+        // 停止滚动
+        function stopRolling() {
+            if (!isRolling) return;
+            
+            clearInterval(rollInterval);
+            clearTimeout(autoStopTimeout);
+            isRolling = false;
+            nameDisplay.classList.remove('rolling');
+            
+            // 停止滚动音乐
+            rollSound.pause();
+            
+            // 随机选择一个学生
+            const randomIndex = Math.floor(Math.random() * studentsData.length);
+            currentStudent = studentsData[randomIndex];
+            nameDisplay.textContent = currentStudent.name;
+            nameDisplay.style.color = '#d4af37';
+            nameDisplay.style.textShadow = '0 0 20px #d4af37';
+            
+            // 语音播报
+            speakName(currentStudent.name);
+            
+            // 播放选择音效
+            if (isMusicEnabled) {
+                celebrationSound.currentTime = 0;
+                celebrationSound.play();
+            }
+        }
+        
+        // 语音播报
+        function speakName(name) {
+            if ('speechSynthesis' in window) {
+                const speech = new SpeechSynthesisUtterance(name);
+                speech.lang = 'zh-CN';
+                speech.rate = 1.0;
+                speechSynthesis.speak(speech);
+            }
+        }
+        
+        // 表扬语音
+        function speakPraise() {
+            if ('speechSynthesis' in window) {
+                const speech = new SpeechSynthesisUtterance("你真棒");
+                speech.lang = 'zh-CN';
+                speech.rate = 1.0;
+                setTimeout(() => {
+                    speechSynthesis.speak(speech);
+                }, 500);
+            }
+        }
+        
+        // 更新分数
+        function updateScore(studentName, change) {
+            const studentIndex = studentsData.findIndex(s => s.name === studentName);
+            if (studentIndex !== -1) {
+                studentsData[studentIndex].score += change;
+                
+                // 保存到localStorage
+                localStorage.setItem('classroomData', JSON.stringify(studentsData));
+                
+                // 重新渲染UI
+                renderGroups();
+                renderLeaderboard();
+            }
+        }
+        
+        // 庆祝效果
+        function celebrate() {
+            if (isMusicEnabled) {
+                celebrationSound.currentTime = 0;
+                celebrationSound.play();
+            }
+        }
+        
+        // 创建+1动画
+        function createPlusOneAnimation() {
+            const plusOne = document.createElement('div');
+            plusOne.className = 'plus-one';
+            plusOne.textContent = '+1';
+            
+            // 设置位置在加分按钮上方
+            const rect = addPointBtn.getBoundingClientRect();
+            plusOne.style.left = `${rect.left + rect.width/2}px`;
+            plusOne.style.top = `${rect.top}px`;
+            
+            document.body.appendChild(plusOne);
+            
+            // 动画结束后移除元素
+            setTimeout(() => {
+                plusOne.remove();
+            }, 1000);
+        }
+        
+        // 创建粒子效果（五彩缤纷的碎花）
+        function createParticles() {
+            // 使用五颜六色的碎片形状
+            for (let i = 0; i < 300; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                
+                // 随机选择碎片形状
+                const shapeIndex = Math.floor(Math.random() * particleShapes.length);
+                particle.style.backgroundImage = `url('${particleShapes[shapeIndex]}')`;
+                
+                // 随机大小
+                const size = Math.random() * 25 + 15;
+                particle.style.width = `${size}px`;
+                particle.style.height = `${size}px`;
+                
+                // 起始位置在屏幕顶部
+                const startX = Math.random() * window.innerWidth;
+                const startY = -20;
+                
+                particle.style.left = `${startX}px`;
+                particle.style.top = `${startY}px`;
+                
+                // 随机移动方向（向下散落）
+                const angle = (Math.random() * 0.5 + 0.25) * Math.PI; // 向下飘落
+                const distance = Math.random() * 500 + 300;
+                const tx = Math.cos(angle) * distance * (Math.random() > 0.5 ? 1 : -1);
+                const ty = Math.sin(angle) * distance;
+                
+                particle.style.setProperty('--tx', `${tx}px`);
+                particle.style.setProperty('--ty', `${ty}px`);
+                
+                particlesContainer.appendChild(particle);
+                
+                // 3秒后移除粒子
+                setTimeout(() => {
+                    if (particle.parentNode) {
+                        particle.remove();
+                    }
+                }, 3000);
+            }
+        }
+        
+        // 导出到Excel
+        function exportToExcel() {
+            // 创建工作簿
+            const wb = XLSX.utils.book_new();
+            
+            // 准备数据
+            const exportData = studentsData.map(student => ({
+                '小组': student.group,
+                '姓名': student.name,
+                '角色': student.role,
+                '积分': student.score
+            }));
+            
+            // 创建工作表
+            const ws = XLSX.utils.json_to_sheet(exportData);
+            
+            // 将工作表添加到工作簿
+            XLSX.utils.book_append_sheet(wb, ws, '学生积分');
+            
+            // 导出文件
+            XLSX.writeFile(wb, '三1班课堂积分表.xlsx');
+        }
+        
+        // 切换音乐状态
+        function toggleMusic() {
+            isMusicEnabled = !isMusicEnabled;
+            if (isMusicEnabled) {
+                musicControl.innerHTML = '<i class="fas fa-volume-up"></i>';
+                if (isRolling) {
+                    rollSound.play();
+                }
+            } else {
+                musicControl.innerHTML = '<i class="fas fa-volume-mute"></i>';
+                rollSound.pause();
+                celebrationSound.pause();
+            }
+        }
+        
+        // 打开编辑模态框
+        function openEditModal(studentName) {
+            const student = studentsData.find(s => s.name === studentName);
+            if (student) {
+                studentToEdit = student;
+                editName.value = student.name;
+                editGroup.value = student.group;
+                editRole.value = student.role;
+                editScore.value = student.score;
+                editModal.style.display = 'flex';
+            }
+        }
+        
+        // 关闭编辑模态框
+        function closeEditModal() {
+            editModal.style.display = 'none';
+            studentToEdit = null;
+        }
+        
+        // 保存学生编辑
+        function saveStudentEdit() {
+            if (studentToEdit) {
+                // 检查是否有重名
+                const nameExists = studentsData.some(
+                    s => s.name === editName.value && s !== studentToEdit
+                );
+                
+                if (nameExists) {
+                    alert('该姓名已存在，请使用其他姓名！');
+                    return;
+                }
+                
+                // 更新学生信息
+                studentToEdit.name = editName.value;
+                studentToEdit.group = editGroup.value;
+                studentToEdit.role = editRole.value;
+                studentToEdit.score = parseInt(editScore.value);
+                
+                // 保存到localStorage
+                localStorage.setItem('classroomData', JSON.stringify(studentsData));
+                
+                // 重新渲染UI
+                renderGroups();
+                renderLeaderboard();
+                
+                // 关闭模态框
+                closeEditModal();
+            }
+        }
+        
+        // 添加新学生
+        function addNewStudent() {
+            const name = newStudentName.value.trim();
+            const group = newStudentGroup.value;
+            const role = newStudentRole.value;
+            const score = parseInt(newStudentScore.value) || 0;
+            
+            if (!name) {
+                alert('请输入学生姓名！');
+                return;
+            }
+            
+            // 检查是否有重名
+            const nameExists = studentsData.some(s => s.name === name);
+            if (nameExists) {
+                alert('该姓名已存在，请使用其他姓名！');
+                return;
+            }
+            
+            // 添加新学生
+            const newStudent = {
+                group,
+                name,
+                role,
+                score
+            };
+            
+            studentsData.push(newStudent);
+            
+            // 保存到localStorage
+            localStorage.setItem('classroomData', JSON.stringify(studentsData));
+            
+            // 重新渲染UI
+            renderGroups();
+            renderLeaderboard();
+            
+            // 关闭模态框
+            addStudentModal.style.display = 'none';
+            
+            // 显示成功提示
+            alert(`成功添加学生: ${name}`);
+        }
+        
+        // 打开删除学生模态框
+        function openDeleteStudentModal() {
+            if (studentsData.length === 0) {
+                alert('没有学生可删除！');
+                return;
+            }
+            
+            // 创建选择列表
+            let options = studentsData.map(student => 
+                `<option value="${student.name}">${student.group} - ${student.name}</option>`
+            ).join('');
+            
+            deleteConfirmMessage.innerHTML = `
+                <label for="studentToDelete">选择要删除的学生:</label>
+                <select id="studentToDelete" style="width: 100%; padding: 8px; margin-top: 10px;">
+                    ${options}
+                </select>
+            `;
+            
+            deleteConfirmModal.style.display = 'flex';
+        }
+        
+        // 删除选中的学生
+        function deleteSelectedStudent() {
+            const selectElement = document.getElementById('studentToDelete');
+            const studentName = selectElement.value;
+            
+            // 确认删除
+            if (!confirm(`确定要删除学生 "${studentName}" 吗？`)) {
+                return;
+            }
+            
+            // 查找并删除学生
+            const index = studentsData.findIndex(s => s.name === studentName);
+            if (index !== -1) {
+                studentsData.splice(index, 1);
+                
+                // 保存到localStorage
+                localStorage.setItem('classroomData', JSON.stringify(studentsData));
+                
+                // 重新渲染UI
+                renderGroups();
+                renderLeaderboard();
+                
+                // 关闭模态框
+                deleteConfirmModal.style.display = 'none';
+                
+                // 显示成功提示
+                alert(`成功删除学生: ${studentName}`);
+            }
+        }
+        
+        // 执行批量操作
+        function executeBatchOperation() {
+            const points = parseInt(batchPoints.value) || 0;
+            if (points <= 0) {
+                alert('请输入有效的积分值！');
+                return;
+            }
+            
+            if (currentBatchOperation === 'add') {
+                // 统一加分
+                studentsData.forEach(student => {
+                    student.score += points;
+                });
+            } else if (currentBatchOperation === 'sub') {
+                // 统一减分
+                studentsData.forEach(student => {
+                    student.score -= points;
+                });
+            }
+            
+            // 保存到localStorage
+            localStorage.setItem('classroomData', JSON.stringify(studentsData));
+            
+            // 重新渲染UI
+            renderGroups();
+            renderLeaderboard();
+            
+            // 关闭模态框
+            batchOperateModal.style.display = 'none';
+            
+            // 显示成功提示
+            alert(`成功${currentBatchOperation === 'add' ? '增加' : '减少'}所有学生${points}分`);
+            
+            // 播放庆祝效果
+            celebrate();
+            createParticles();
+        }
+        
+        // 一键清空积分
+        function resetAllScores() {
+            if (!confirm('确定要清空所有学生的积分吗？此操作不可撤销！')) {
+                return;
+            }
+            
+            // 将所有学生积分重置为0
+            studentsData.forEach(student => {
+                student.score = 0;
+            });
+            
+            // 保存到localStorage
+            localStorage.setItem('classroomData', JSON.stringify(studentsData));
+            
+            // 重新渲染UI
+            renderGroups();
+            renderLeaderboard();
+            
+            // 显示成功提示
+            alert('已清空所有学生的积分');
+        }
+        
+        // 打开小组管理模态框
+        function openGroupManageModal() {
+            renderGroupList();
+            groupManageModal.style.display = 'flex';
+        }
+        
+        // 添加新小组
+        function addNewGroup() {
+            const groupName = newGroupName.value.trim();
+            
+            if (!groupName) {
+                alert('请输入小组名称！');
+                return;
+            }
+            
+            // 检查小组是否已存在
+            const groupExists = studentsData.some(s => s.group === groupName);
+            if (groupExists) {
+                alert('该小组已存在！');
+                return;
+            }
+            
+            // 更新小组选择下拉框
+            updateGroupSelects();
+            
+            // 清空输入框
+            newGroupName.value = '';
+            
+            // 重新渲染小组列表
+            renderGroupList();
+            
+            // 显示成功提示
+            alert(`成功添加小组: ${groupName}`);
+        }
+        
+        // 打开编辑小组名称模态框
+        function openEditGroupModal(groupName) {
+            groupToEdit = groupName;
+            editGroupName.value = groupName;
+            editGroupModal.style.display = 'flex';
+        }
+        
+        // 保存小组编辑
+        function saveGroupEdit() {
+            const newGroupName = editGroupName.value.trim();
+            
+            if (!newGroupName) {
+                alert('请输入小组名称！');
+                return;
+            }
+            
+            // 检查小组是否已存在
+            const groupExists = studentsData.some(s => s.group === newGroupName && s.group !== groupToEdit);
+            if (groupExists) {
+                alert('该小组名称已存在！');
+                return;
+            }
+            
+            // 更新所有属于该小组的学生
+            studentsData.forEach(student => {
+                if (student.group === groupToEdit) {
+                    student.group = newGroupName;
+                }
+            });
+            
+            // 保存到localStorage
+            localStorage.setItem('classroomData', JSON.stringify(studentsData));
+            
+            // 重新渲染UI
+            renderGroups();
+            renderLeaderboard();
+            renderGroupList();
+            
+            // 更新小组选择下拉框
+            updateGroupSelects();
+            
+            // 关闭模态框
+            editGroupModal.style.display = 'none';
+            
+            // 显示成功提示
+            alert(`成功将小组 "${groupToEdit}" 更名为 "${newGroupName}"`);
+        }
+        
+        // 删除小组
+        function deleteGroup(groupName) {
+            // 检查小组是否有学生
+            const hasStudents = studentsData.some(s => s.group === groupName);
+            
+            if (hasStudents) {
+                if (!confirm(`小组 "${groupName}" 中还有学生，确定要删除吗？删除后这些学生将不再属于任何小组！`)) {
+                    return;
+                }
+            } else {
+                if (!confirm(`确定要删除小组 "${groupName}" 吗？`)) {
+                    return;
+                }
+            }
+            
+            // 更新小组选择下拉框
+            updateGroupSelects();
+            
+            // 重新渲染小组列表
+            renderGroupList();
+            
+            // 重新渲染UI
+            renderGroups();
+            renderLeaderboard();
+            
+            // 显示成功提示
+            alert(`成功删除小组: ${groupName}`);
+        }
+        
+        // 初始化应用
+        document.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+</html>
